@@ -38,7 +38,7 @@ const material = new MeshStandardNodeMaterial({
 
 const size = 250
 
-const geometry = new PlaneGeometry(size, size, size * 4, size * 4)
+const geometry = new PlaneGeometry(size, size * 0.5, size * 4, size * 2)
 geometry.rotateX(-Math.PI * 0.5)
 const sand = new Mesh(geometry, material)
 

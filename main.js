@@ -13,16 +13,38 @@ let gltfLoader = new GLTFLoader()
 const submarine = {
 	mesh: null,
 	elica: null,
+	body: [],
+	eye: null,
 }
 
 gltfLoader.load(submarineSrc, (gltf) => {
 	submarine.mesh =
 		gltf.scene.children[0].children[0].children[0].children[0].children[1]
 
+	const gold = new MeshStandardNodeMaterial({ color: 'gold' })
 	submarine.elica = submarine.mesh.children[2]
-	submarine.mesh.scale.setScalar(0.005)
-	submarine.mesh.position.set(0, 5, 0)
-	console.log(submarine.mesh)
+	submarine.mesh.children[4].children[0].material = gold
+	submarine.mesh.children[6].children[0].material = gold
+	submarine.mesh.children[7].children[0].material = gold
+	submarine.body.push(
+		submarine.mesh.children[3],
+		submarine.mesh.children[4],
+		submarine.mesh.children[7],
+		submarine.mesh.children[6]
+	)
+	submarine.eye = submarine.mesh.children[5]
+	submarine.mesh.remove(submarine.mesh.children[0])
+	submarine.mesh.remove(submarine.mesh.children[0])
+	submarine.mesh.scale.setScalar(0.003)
+	submarine.mesh.position.set(0, 6, 6)
+
+	const pointLight = new THREE.PointLight(0x00ceff, 2, 30, 0.05)
+	pointLight.position.y = 3
+	pointLight.position.x = 2
+
+	submarine.mesh.add(pointLight)
+
+	// console.log(submarine.mesh)
 	scene.add(submarine.mesh)
 })
 
@@ -45,7 +67,7 @@ gui.add(configs, 'example', 0, 10, 0.1).onChange((val) => console.log(val))
  */
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x2277ab)
-scene.fog = new THREE.FogExp2(0x2277ab, 0.05)
+scene.fog = new THREE.FogExp2(0x2277ab, 0.03)
 // scene.fogNode = rangeFog(vec3(0, 0, 0.05), 0, 50)
 
 // __box__
@@ -63,14 +85,19 @@ mesh.position.y += 1.5
 import sand from './src/sand'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import WebGPURenderer from 'three/examples/jsm/renderers/webgpu/WebGPURenderer.js'
-import { rangeFog, vec3 } from 'three/examples/jsm/nodes/Nodes.js'
+import {
+	MeshStandardNodeMaterial,
+	rangeFog,
+	vec3,
+} from 'three/examples/jsm/nodes/Nodes.js'
 import poseidon from './src/poseidon'
 
 for (let i = 0; i < 300; i++) {
 	const pose = poseidon.clone()
 
-	pose.position.randomDirection().multiplyScalar(60)
+	pose.position.randomDirection().multiplyScalar(120)
 	pose.position.y = 0
+	pose.position.z *= 0.15
 	scene.add(pose)
 }
 
@@ -94,7 +121,7 @@ const sizes = {
  */
 const fov = 60
 const camera = new THREE.PerspectiveCamera(fov, sizes.width / sizes.height, 0.1)
-camera.position.set(8, 8, 8)
+camera.position.set(0, 6, 20)
 // camera.lookAt(new THREE.Vector3(0, 2.5, 0))
 
 /**
@@ -121,21 +148,18 @@ handleResize()
 // __controls__
 const controls = new OrbitControls(camera, renderer.domElement)
 controls.enableDamping = true
-controls.autoRotate = true
-controls.autoRotateSpeed = 4
+// controls.autoRotate = true
+controls.autoRotateSpeed = 2
 controls.target.set(0, 4, 0)
 
 /**
  * Lights
  */
-// const ambientLight = new THREE.AmbientLight(0xffffff, 0)
-const pointLight = new THREE.PointLight(0x00ceff, 2, 30, 0.05)
-pointLight.position.y = 3
-pointLight.position.x = 2
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5)
 directionalLight.position.set(3, 10, 7)
 directionalLight.castShadow = true
-scene.add(directionalLight, pointLight)
+scene.add(directionalLight, ambientLight)
 
 /**
  * Three js Clock
@@ -159,8 +183,9 @@ function tic() {
 
 	// __controls_update__
 	controls.update()
-	if (submarine.elica) {
+	if (submarine.mesh) {
 		submarine.elica.rotation.z = Math.PI * time * 4
+		submarine.mesh.position.y = 6 + Math.sin(time) * 0.5
 	}
 
 	renderer.renderAsync(scene, camera)
