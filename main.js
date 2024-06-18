@@ -8,7 +8,13 @@ import * as dat from 'lil-gui'
 import { GLTFLoader } from 'three/examples/jsm/Addons.js'
 import submarineSrc from '/3d-models/submarine/scene.gltf?url'
 
+import('@dimforge/rapier3d').then((RAPIER) => {
+	init(RAPIER)
+})
+
 let gltfLoader = new GLTFLoader()
+
+let world = null
 
 const submarine = {
 	mesh: null,
@@ -17,52 +23,77 @@ const submarine = {
 	eye: null,
 }
 
-gltfLoader.load(submarineSrc, (gltf) => {
-	const mesh =
-		gltf.scene.children[0].children[0].children[0].children[0].children[1]
+function init(RAPIER) {
+	gltfLoader.load(submarineSrc, (gltf) => {
+		const mesh =
+			gltf.scene.children[0].children[0].children[0].children[0].children[1]
 
-	const group = new THREE.Object3D()
+		const group = new THREE.Object3D()
 
-	const gold = new MeshStandardNodeMaterial({ color: 'gold' })
-	submarine.elica = mesh.children[2]
-	mesh.children[4].children[0].material = gold
-	mesh.children[6].children[0].material = gold
-	mesh.children[7].children[0].material = gold
-	submarine.body.push(
-		mesh.children[3],
-		mesh.children[4],
-		mesh.children[7],
-		mesh.children[6]
+		const gold = new MeshStandardNodeMaterial({ color: 'gold' })
+		submarine.elica = mesh.children[2]
+		mesh.children[4].children[0].material = gold
+		mesh.children[6].children[0].material = gold
+		mesh.children[7].children[0].material = gold
+		submarine.body.push(
+			mesh.children[3],
+			mesh.children[4],
+			mesh.children[7],
+			mesh.children[6]
+		)
+		submarine.eye = mesh.children[5]
+		mesh.remove(mesh.children[0])
+		mesh.remove(mesh.children[0])
+		mesh.scale.setScalar(0.003)
+
+		// const pointLight = new THREE.PointLight(
+		// 	0x00ceff,
+		// 	100,
+		// 	20
+		// 	// 0.05
+		// )
+		// pointLight.position.y = 10
+		// pointLight.position.z = 6
+		// // pointLight.target.position.set(0, -5, 0)
+
+		// pointLight.castShadow = true
+		// pointLight.shadow.blurSamples = 20
+		// pointLight.shadow.bias = -0.0005
+		mesh.position.set(0, 0, 0)
+
+		group.position.set(0, 6, 0)
+		// const spotHelper = new THREE.PointLightHelper(pointLight)
+		// scene.add(spotHelper, pointLight)
+		camera.position.set(-8, 4, 0)
+		group.add(mesh, camera)
+
+		submarine.mesh = group
+		createWorld(RAPIER)
+
+		// console.log(submarine.mesh)
+		scene.add(group)
+	})
+}
+
+function createWorld(RAPIER) {
+	const gravity = { x: 0, y: -9.81, z: 0 }
+	world = new RAPIER.World(gravity)
+
+	let groundColliderDesc = RAPIER.ColliderDesc.cuboid(250.0, 0.5, 250.0)
+	world.createCollider(groundColliderDesc)
+
+	const body = RAPIER.RigidBodyDesc.kinematicVelocityBased().setTranslation(
+		0,
+		6,
+		0
 	)
-	submarine.eye = mesh.children[5]
-	mesh.remove(mesh.children[0])
-	mesh.remove(mesh.children[0])
-	mesh.scale.setScalar(0.003)
+	submarine.body = world.createRigidBody(body)
 
-	// const pointLight = new THREE.PointLight(
-	// 	0x00ceff,
-	// 	100,
-	// 	20
-	// 	// 0.05
-	// )
-	// pointLight.position.y = 10
-	// pointLight.position.z = 6
-	// // pointLight.target.position.set(0, -5, 0)
+	const subCollider = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5)
+	submarine.collider = world.createCollider(subCollider, submarine.body)
 
-	// pointLight.castShadow = true
-	// pointLight.shadow.blurSamples = 20
-	// pointLight.shadow.bias = -0.0005
-	mesh.position.set(0, 0, 0)
-
-	group.position.set(0, 6, 6)
-	// const spotHelper = new THREE.PointLightHelper(pointLight)
-	// scene.add(spotHelper, pointLight)
-	group.add(mesh)
-
-	submarine.mesh = group
-	// console.log(submarine.mesh)
-	scene.add(group)
-})
+	requestAnimationFrame(tic)
+}
 
 let stats = new Stats()
 stats.showPanel(0)
@@ -108,7 +139,7 @@ import {
 } from 'three/examples/jsm/nodes/Nodes.js'
 import poseidon from './src/poseidon'
 
-for (let i = 0; i < 0; i++) {
+for (let i = 0; i < 50; i++) {
 	const pose = poseidon.clone()
 
 	const x = Math.random() * 200 - 100
@@ -138,7 +169,7 @@ const sizes = {
  */
 const fov = 60
 const camera = new THREE.PerspectiveCamera(fov, sizes.width / sizes.height, 0.1)
-camera.position.set(0, 6, 20)
+// camera.position.set(-4, 8, 0)
 // camera.lookAt(new THREE.Vector3(0, 2.5, 0))
 
 /**
@@ -165,11 +196,11 @@ handleResize()
  * OrbitControls
  */
 // __controls__
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.enableDamping = true
-// controls.autoRotate = true
-controls.autoRotateSpeed = 2
-controls.target.set(0, 4, 0)
+// const controls = new OrbitControls(camera, renderer.domElement)
+// controls.enableDamping = true
+// // controls.autoRotate = true
+// controls.autoRotateSpeed = 2
+// controls.target.set(0, 4, 0)
 
 /**
  * Lights
@@ -211,12 +242,24 @@ function tic() {
 	 * tempo totale trascorso dall'inizio
 	 */
 	const time = clock.getElapsedTime()
+	world && world.step()
 
 	// __controls_update__
-	controls.update()
+	// controls.update()
 	if (submarine.mesh) {
 		submarine.elica.rotation.z = Math.PI * time * 4
-		submarine.mesh.position.y = 6 + Math.sin(time) * 0.5
+		const position = submarine.body.translation()
+		submarine.mesh.position.x = position.x
+		// submarine.mesh.position.z = position.z
+		submarine.mesh.position.y =
+			submarine.body.translation().y + Math.sin(time) * 0.5
+
+		// camera.position.x = position.x
+		// const posToLook = submarine.mesh.position.clone().add()
+		camera.lookAt(submarine.mesh.position)
+
+		// let position = submarine.body.translation()
+		// console.log('Rigid-body position: ', position.x, position.y, position.z)
 	}
 
 	renderer.renderAsync(scene, camera)
@@ -226,7 +269,7 @@ function tic() {
 	requestAnimationFrame(tic)
 }
 
-requestAnimationFrame(tic)
+// requestAnimationFrame(tic)
 
 window.addEventListener('resize', handleResize)
 
@@ -244,3 +287,41 @@ function handleResize() {
 	const pixelRatio = Math.min(window.devicePixelRatio, 2)
 	renderer.setPixelRatio(pixelRatio)
 }
+
+let vel = 4
+
+window.addEventListener('keydown', (e) => {
+	const code = e.code
+	console.log(code)
+
+	switch (code) {
+		case 'ArrowUp':
+		case 'KeyW':
+			console.log('su')
+			submarine.body.setLinvel({ x: 0.0, y: vel, z: 0.0 }, true)
+			break
+		case 'ArrowDown':
+		case 'KeyS':
+			console.log('giu')
+			submarine.body.setLinvel({ x: 0.0, y: -vel, z: 0.0 }, true)
+			break
+		case 'ArrowRight':
+			console.log('des')
+			submarine.body.setLinvel({ x: 0, y: 0.0, z: vel }, true)
+			break
+		case 'ArrowLeft':
+			console.log('sin')
+			submarine.body.setLinvel({ x: 0, y: 0.0, z: -vel }, true)
+			break
+		case 'Space':
+			// console.log('sin')
+			console.log(submarine.body)
+			if (submarine.body.linvel().x > 0) {
+				submarine.body.setLinvel({ x: 0, y: 0.0, z: 0 }, true)
+			} else {
+				submarine.body.setLinvel({ x: vel, y: 0.0, z: 0 }, true)
+			}
+
+			break
+	}
+})
