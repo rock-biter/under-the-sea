@@ -37,19 +37,21 @@ const geometries = []
 for (let i = 0; i < count; i++) {
 	for (let j = 0; j < count; j++) {
 		const h = Math.random() * 1.5 + 1
-		const geometry = new BoxGeometry(0.02, h, 0.1, 1, 10, 1)
+		const geometry = new BoxGeometry(0.01, h, 0.1, 1, 10, 1)
 		const pos = new Vector3(
-			i * 0.25 - count * 0.25 * 0.5 + Math.random() * 0.1,
+			i * 0.15 - count * 0.15 * 0.5 + Math.random() * 0.1,
 			h * 0.45,
-			j * 0.25 - count * 0.25 * 0.5 + Math.random() * 0.1
+			j * 0.15 - count * 0.15 * 0.5 + Math.random() * 0.1
 		)
 		geometry.rotateY(Math.PI * 2 * Math.random())
+		geometry.rotateZ(Math.PI * -0.06 * -count * 0.5 + Math.PI * -0.06 * i)
+		geometry.rotateX(Math.PI * 0.06 * -count * 0.5 + Math.PI * 0.06 * j)
 
 		if (pos.length() > 1.2) continue
 		// geometry.rotateX(-Math.PI * 0.5)
 		geometry.translate(
 			i * 0.25 - count * 0.25 * 0.5 + Math.random() * 0.1,
-			h * 0.45,
+			h * 0.4,
 			j * 0.25 - count * 0.25 * 0.5 + Math.random() * 0.1
 		)
 
@@ -58,6 +60,7 @@ for (let i = 0; i < count; i++) {
 }
 
 const geometry = mergeGeometries(geometries)
+geometry.computeVertexNormals()
 const material = new MeshStandardNodeMaterial({
 	color: 'green',
 	side: DoubleSide,

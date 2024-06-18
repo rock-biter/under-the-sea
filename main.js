@@ -18,34 +18,50 @@ const submarine = {
 }
 
 gltfLoader.load(submarineSrc, (gltf) => {
-	submarine.mesh =
+	const mesh =
 		gltf.scene.children[0].children[0].children[0].children[0].children[1]
 
+	const group = new THREE.Object3D()
+
 	const gold = new MeshStandardNodeMaterial({ color: 'gold' })
-	submarine.elica = submarine.mesh.children[2]
-	submarine.mesh.children[4].children[0].material = gold
-	submarine.mesh.children[6].children[0].material = gold
-	submarine.mesh.children[7].children[0].material = gold
+	submarine.elica = mesh.children[2]
+	mesh.children[4].children[0].material = gold
+	mesh.children[6].children[0].material = gold
+	mesh.children[7].children[0].material = gold
 	submarine.body.push(
-		submarine.mesh.children[3],
-		submarine.mesh.children[4],
-		submarine.mesh.children[7],
-		submarine.mesh.children[6]
+		mesh.children[3],
+		mesh.children[4],
+		mesh.children[7],
+		mesh.children[6]
 	)
-	submarine.eye = submarine.mesh.children[5]
-	submarine.mesh.remove(submarine.mesh.children[0])
-	submarine.mesh.remove(submarine.mesh.children[0])
-	submarine.mesh.scale.setScalar(0.003)
-	submarine.mesh.position.set(0, 6, 6)
+	submarine.eye = mesh.children[5]
+	mesh.remove(mesh.children[0])
+	mesh.remove(mesh.children[0])
+	mesh.scale.setScalar(0.003)
 
-	const pointLight = new THREE.PointLight(0x00ceff, 2, 30, 0.05)
-	pointLight.position.y = 3
-	pointLight.position.x = 2
+	// const pointLight = new THREE.PointLight(
+	// 	0x00ceff,
+	// 	100,
+	// 	20
+	// 	// 0.05
+	// )
+	// pointLight.position.y = 10
+	// pointLight.position.z = 6
+	// // pointLight.target.position.set(0, -5, 0)
 
-	submarine.mesh.add(pointLight)
+	// pointLight.castShadow = true
+	// pointLight.shadow.blurSamples = 20
+	// pointLight.shadow.bias = -0.0005
+	mesh.position.set(0, 0, 0)
 
+	group.position.set(0, 6, 6)
+	// const spotHelper = new THREE.PointLightHelper(pointLight)
+	// scene.add(spotHelper, pointLight)
+	group.add(mesh)
+
+	submarine.mesh = group
 	// console.log(submarine.mesh)
-	scene.add(submarine.mesh)
+	scene.add(group)
 })
 
 let stats = new Stats()
@@ -92,12 +108,13 @@ import {
 } from 'three/examples/jsm/nodes/Nodes.js'
 import poseidon from './src/poseidon'
 
-for (let i = 0; i < 300; i++) {
+for (let i = 0; i < 0; i++) {
 	const pose = poseidon.clone()
 
-	pose.position.randomDirection().multiplyScalar(120)
-	pose.position.y = 0
-	pose.position.z *= 0.15
+	const x = Math.random() * 200 - 100
+	const z = Math.random() * 200 - 100
+
+	pose.position.set(x, 0, z)
 	scene.add(pose)
 }
 
@@ -135,10 +152,12 @@ camera.position.set(0, 6, 20)
  * renderer
  */
 const renderer = new WebGPURenderer({
-	antialias: window.devicePixelRatio < 2,
-	logarithmicDepthBuffer: true,
+	antialias: true,
 })
-renderer.shadowMap.enabled = true
+// renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.VSMShadowMap
+// renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.toneMapping = THREE.ACESFilmicToneMapping
 document.body.appendChild(renderer.domElement)
 handleResize()
 
@@ -158,7 +177,19 @@ controls.target.set(0, 4, 0)
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5)
 directionalLight.position.set(3, 10, 7)
-directionalLight.castShadow = true
+// directionalLight.castShadow = true
+directionalLight.shadow.camera.near = 0.1
+directionalLight.shadow.camera.far = 30
+directionalLight.shadow.camera.left = -50
+directionalLight.shadow.camera.right = 50
+directionalLight.shadow.camera.top = 50
+directionalLight.shadow.camera.bottom = -50
+directionalLight.shadow.mapSize.width = 2048
+directionalLight.shadow.mapSize.height = 2048
+directionalLight.shadow.radius = 30
+directionalLight.shadow.blurSamples = 20
+directionalLight.shadow.bias = -0.005
+
 scene.add(directionalLight, ambientLight)
 
 /**
